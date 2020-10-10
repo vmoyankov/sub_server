@@ -1,5 +1,5 @@
-<html>
-    <body>
+{% extends "base.html" %}
+{% block body %}
         <h1>{{ basename }}</h1>
         <pre>
 {% for l in streams %}{{ l }}
@@ -10,5 +10,4 @@
       <input type=hidden name="mov" value="{{ filename }}"/>
       <input type=submit value="Upload">
     </form>
-    </body>
-</html>
+{% endblock %}

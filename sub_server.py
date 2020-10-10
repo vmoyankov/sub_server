@@ -2,14 +2,70 @@
 # -*- coding: utf-8 -*-
 
 import os
+import queue
 import subprocess
+import threading
 
 from flask import Flask, app, redirect, url_for, render_template, request
 from flask import send_file, abort, flash, session
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'sdasadsfasdf'
+app.secret_key = 'dasadsfasdf'
+
+task_queue = queue.Queue()
+task_list = set()
+
+def worker():
+    while True:
+        task = task_queue.get()
+        try:
+            print(f'starting {task}')
+            task()
+            print(f'end of {task}')
+        except Exception as e:
+            print(f'Error executing {task}: {e}')
+
+threading.Thread(target=worker, daemon=True).start()
+
+class Encode:
+    """
+    This is a task that is run asyncronously to convert the movie using ffmpeg
+    """
+    def __init__(self, mov, sub, outf):
+        self.mov = mov
+        self.sub = sub
+        self.outf = outf
+        self.name = self.mov.split('/')[-1][:20]
+        self.state = 'idle'
+
+    def __str__(self):
+        return f'{self.name}: [{self.state}] {self.progress()}%'
+
+    def __call__(self):
+        self.state = 'running'
+        print(f'Star processing {self.name}')
+        cmd = [ 'ffmpeg',
+            '-fflags', '+genpts', '-y',
+            '-i', self.mov, '-i', self.sub,
+            #'-map', '0', '-map', '1', '-c', 'copy', 
+            '-map', '0', '-map', '-0:s', '-map', '1', '-c', 'copy', # remove all sub from the source
+            self.outf ] 
+        cp = subprocess.run(cmd, stderr=subprocess.PIPE, check=False)
+        if cp.returncode == 0:
+            self.state = 'OK'
+        else:
+            self.state = f'Err: {cp.stderr}'
+
+    def progress(self):
+        try:
+            infile_sz = os.stat(self.mov).st_size
+            ofile_sz = os.stat(self.outf).st_size
+            return int(100 * ofile_sz / infile_sz)
+        except FileNotFoundError:
+            return 0
+
+
 
 BASE_DIR = '/mnt/media/downloads/videos'
 UPLOAD_FOLDER = '/mnt/media/downloads/subs'
@@ -130,31 +186,23 @@ def upload_file():
 
             run_ffmpeg(mov_path, sub_path, out_path)
 
-            return redirect(url_for('uploaded_file',
-                                    filename=filename))
+            return redirect(url_for('dir_listing'))
     return render_template('file_info.html', **request.form)
 
 def run_ffmpeg(mov, sub, outf):
-    cmd = [ 'ffmpeg',
-        '-fflags', '+genpts',
-        '-i', mov, '-i', sub,
-        #'-map', '0', '-map', '1', '-c', 'copy', 
-        '-map', '0', '-map', '-0:s', '-map', '1', '-c', 'copy', # remove all sub from the source
-        outf ] 
-    p = subprocess.Popen( cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
-    task_list = get_task_list()
-    task_list.append(p)
-    app.logger.info(' '.join(cmd))
-    print(task_list)
+    task = Encode(mov, sub, outf)
+    task_list.add(task)
+    task_queue.put(task)
+    flash(f"Task is added: {str(task)}")
+
 
 def get_task_list():
-    if 'task_list' not in session:
-        session['task_list'] = []
-    return session['task_list']
+    return [str(t) for t in task_list]
 
-@app.route('/done')
-def uploaded_file():
-    return "Done" + repr(request.args)
+@app.route('/tl')
+def gtl():
+    return "\n".join(get_task_list())
+
 
 def main():
 
