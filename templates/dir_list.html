@@ -1,0 +1,18 @@
+<html>
+    <body>
+        <ul>
+            {% for file in dirs %}
+            <li><a href="{{ file.name }}/">{{ file.name }}</a></li>
+            {% endfor %}
+            {% for file in videos %}
+            <li>{{ file.stat().st_size | to_human }} {{ file.name }} [ <a href="{{ url_for('info', f=file.path | get_dir )}}">Info</a> ] </li>
+            {% endfor %}
+        </ul>
+        <hr>
+        <ul>
+            {% for t in tl %}
+            <li>{{ i.poll() }}</li>
+			{% endfor %}
+		</ul>
+    </body>
+</html>

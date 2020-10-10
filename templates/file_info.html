@@ -1,0 +1,14 @@
+<html>
+    <body>
+        <h1>{{ basename }}</h1>
+        <pre>
+{% for l in streams %}{{ l }}
+{% endfor %}
+        </pre>
+    <form method=post action="/upload" enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=hidden name="mov" value="{{ filename }}"/>
+      <input type=submit value="Upload">
+    </form>
+    </body>
+</html>

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export FLASK_APP=sub_server.py
+flask run --host=::
