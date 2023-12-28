@@ -70,6 +70,7 @@ class Encode:
 
 BASE_DIR = '/mnt/media/downloads/videos'
 UPLOAD_FOLDER = '/mnt/media/downloads/subs'
+SUB_FOLDER = '/mnt/media/tmp'
 ALLOWED_EXTENSIONS = set(['srt', 'sub'])
 
 
@@ -171,12 +172,21 @@ def upload_file():
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            sub_path = os.path.join(UPLOAD_FOLDER, filename)
+            sub_path = os.path.join(SUB_FOLDER, filename)
             out_name = os.path.basename(mov)
             out_name = os.path.splitext(out_name)[0] + '.mkv'
             out_path = os.path.join(UPLOAD_FOLDER, out_name)
             mov_path = os.path.join(BASE_DIR, mov)
             bcontent = file.stream.read()
+            try:
+                if os.path.isfile(out_path):
+                    os.remove(out_path)
+                if os.path.isfile(sub_path):
+                    os.remove(sub_path)
+            except (OSError, FileNotFoundError) as e:
+                print(e)
+                flash(f"Error adding {filename}: {e}")
+                return redirect(url_for('dir_listing'))
             print("Saving subtitles: " + filename)
             try:
                 content = bcontent.decode('utf-8')
