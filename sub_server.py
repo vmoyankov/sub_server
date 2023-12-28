@@ -8,10 +8,11 @@ import threading
 
 from flask import Flask, app, redirect, url_for, render_template, request
 from flask import send_file, abort, flash, session
+
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'dasadsfasdf'
+app.secret_key = 'XXXXXXX'
 
 task_queue = queue.Queue()
 task_list = set()
@@ -36,7 +37,7 @@ class Encode:
         self.mov = mov
         self.sub = sub
         self.outf = outf
-        self.name = self.mov.split('/')[-1][:20]
+        self.name = self.mov.split('/')[-1][:60]
         self.state = 'idle'
 
     def __str__(self):
@@ -123,6 +124,7 @@ def dir_listing(req_path):
     videos = [ x for x in files if x.name.endswith((
         '.mkv', '.mp4', '.avi', '.srt'
         )) ]
+    videos.sort(key=lambda x: x.name)
     tl = get_task_list()
     print(tl)
     return render_template('dir_list.html', dirs=dirs,
@@ -170,7 +172,8 @@ def upload_file():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             sub_path = os.path.join(UPLOAD_FOLDER, filename)
-            out_name = filename.rsplit('.',1)[0] + '.mkv'
+            # out_name = filename.rsplit('.',1)[0] + '.mkv'
+            out_name = os.path.basename(mov)
             out_path = os.path.join(UPLOAD_FOLDER, out_name)
             mov_path = os.path.join(BASE_DIR, mov)
             bcontent = file.stream.read()
