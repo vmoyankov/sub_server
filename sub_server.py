@@ -172,8 +172,8 @@ def upload_file():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             sub_path = os.path.join(UPLOAD_FOLDER, filename)
-            # out_name = filename.rsplit('.',1)[0] + '.mkv'
             out_name = os.path.basename(mov)
+            out_name = os.path.splitext(out_name)[0] + '.mkv'
             out_path = os.path.join(UPLOAD_FOLDER, out_name)
             mov_path = os.path.join(BASE_DIR, mov)
             bcontent = file.stream.read()
